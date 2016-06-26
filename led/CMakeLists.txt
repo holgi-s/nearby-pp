@@ -12,5 +12,9 @@ endif()
 
 add_executable(color_connection ${LED_SOURCE})
 
-target_link_libraries(color_connection nearby)
+if(WIN32)
+    target_link_libraries(color_connection nearby)
+else()
+    target_link_libraries(color_connection pigpiod_if2 nearby)
+endif()
 
