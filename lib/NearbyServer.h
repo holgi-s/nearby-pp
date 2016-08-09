@@ -65,6 +65,7 @@ private:
     std::map<u_long, SOCKET> socketLookup;
 
     SOCKET serverSocket;
+    SOCKET cancelSocket;
     static bool serverLoop;
 
     const size_t chunkSize = 2048;

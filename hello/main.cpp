@@ -50,6 +50,7 @@ int main() {
     CColorServer server("HolgisPi", "com.holgis.hello_service", "com.holgis.helloconnection", 37484);
 #endif
 
+
     server.startAdvertising();
     server.startServer();
 

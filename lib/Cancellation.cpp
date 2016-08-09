@@ -8,28 +8,31 @@
 
 SOCKET Cancellation::Create()
 {
-    SOCKET loop = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if(loop != INVALID_SOCKET ) {
 
-        struct sockaddr_in loop_addr = {}, local_addr = {};
+    if(SOCKET loopSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) {
+        struct sockaddr_in loop_addr, local_addr;
 
         loop_addr.sin_family = AF_INET;
         loop_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
         loop_addr.sin_port = htons(0);
+int err =0;
 
-        if(SOCKET_ERROR != bind(loop, (struct sockaddr*) &local_addr, sizeof(local_addr)))
-        {
+       if(err = bind(loopSocket , (struct sockaddr*)&loop_addr, sizeof(loop_addr) ) >= 0) {
+
             int len = sizeof(local_addr);
-            if(SOCKET_ERROR != getsockname(loop, (struct sockaddr*) &local_addr, &len))
-            {
-                if(SOCKET_ERROR != connect(loop, (struct sockaddr*) &local_addr, sizeof(len)))
-                {
-                    return loop;
+            if(err = getsockname(loopSocket, (struct sockaddr*) &local_addr, &len) >= 0) {
+
+                if(err= connect(loopSocket, (struct sockaddr*) &local_addr, sizeof(local_addr)) >= 0) {
+                    return loopSocket;
+                }
+                else{
+
+                    err = WSAGetLastError();
+                    err = err;
                 }
             }
         }
-
-        closesocket(loop);
+        closesocket(loopSocket);
     }
 
     return INVALID_SOCKET;

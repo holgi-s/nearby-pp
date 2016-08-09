@@ -10,6 +10,7 @@
 #include "NearbyServer.h"
 #include "NearbySession.h"
 #include "NearbyMessage.h"
+#include "Cancellation.h"
 
 
 CNearby::CNearby(const std::string& name, const std::string& service, const std::string& package, unsigned short port) {
@@ -23,6 +24,9 @@ CNearby::CNearby(const std::string& name, const std::string& service, const std:
     WSADATA wsaData;
     int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
 #endif
+
+    cancelSocket = Cancellation::Create();
+
 }
 
 CNearby::~CNearby() {
@@ -81,7 +85,7 @@ bool CNearby::startServer() {
     }
 
     sessions.emplace_back([=]() {
-        doUDPSession(udpSocket);
+        doUDPSession(udpSocket, cancelSocket);
         std::cout << "CNearby::startup - udp sessionfinished!" << std::endl;
     });
 
@@ -90,24 +94,49 @@ bool CNearby::startServer() {
 
         std::cout << "CNearby::startup - start accepting..." << std::endl;
 
-        socklen_t cliLen = sizeof(cliAddr);
-        SOCKET sessionSocket = accept(serverSocket, (struct sockaddr *) &cliAddr, &cliLen);
-        if (sessionSocket < 0) {
-            std::cout << "CNearby::startup - error accepting socket" << std::endl;
-            continue;
+
+        fd_set readFds;
+
+        struct timeval tv;
+        tv.tv_sec = 5;
+        tv.tv_usec = 0;
+
+        SOCKET selectSocket = std::max<SOCKET>(serverSocket, cancelSocket) + 1;
+
+        FD_ZERO(&readFds);
+
+        FD_SET(serverSocket, &readFds);
+        if (cancelSocket != SOCKET_ERROR) {
+            FD_SET(cancelSocket, &readFds);
         }
 
-        socketLookup[cliAddr.sin_addr.s_addr] = sessionSocket;
+        if(int activity = select(selectSocket, &readFds, nullptr, nullptr, &tv)) {
 
-        CNearbySession* nearbySession = new CNearbySession(this);
+            if (FD_ISSET(serverSocket, &readFds)) {
 
-        std::cout << "CNearby::startup - trying to start session..." << std::endl;
+                socklen_t cliLen = sizeof(cliAddr);
+                SOCKET sessionSocket = accept(serverSocket, (struct sockaddr *) &cliAddr, &cliLen);
+                if (sessionSocket < 0) {
+                    std::cout << "CNearby::startup - error accepting socket" << std::endl;
+                    continue;
+                }
 
-        sessions.emplace_back([=]() {
-            nearbySession->doSession(sessionSocket);
-            delete nearbySession;
-            std::cout << "CNearby::startup - session finished!" << std::endl;
-        });
+                socketLookup[cliAddr.sin_addr.s_addr] = sessionSocket;
+
+                CNearbySession *nearbySession = new CNearbySession(this);
+
+                std::cout << "CNearby::startup - trying to start session..." << std::endl;
+
+                sessions.emplace_back([=]() {
+                    nearbySession->doSession(sessionSocket, cancelSocket);
+                    delete nearbySession;
+                    std::cout << "CNearby::startup - session finished!" << std::endl;
+                });
+            } else {
+                std::cout << "CNearby::startup - shutdown, cancelSocket was called!" << std::endl;
+
+            }
+        }
 
     }
 
@@ -124,7 +153,7 @@ bool CNearby::startServer() {
 void CNearby::stopServer() {
 
     serverLoop = false;
-
+    Cancellation::Cancel(cancelSocket);
 }
 
 bool CNearby::onConnectionRequest(const std::string& remoteDevice, const std::string& remoteEndpoint,
