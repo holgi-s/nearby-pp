@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <thread>
 
 #include "Discover.h"
 #include "socket_platform.h"
@@ -24,6 +25,8 @@ public:
 
     bool startServer();
     void stopServer();
+
+    std::thread startServerAsync();
 
     virtual bool onConnectionRequest(const std::string& remoteDevice, const std::string& remoteEndpoint,
                            const std::vector<uint8_t>& requestPayload, std::vector<uint8_t>& acceptPayload);

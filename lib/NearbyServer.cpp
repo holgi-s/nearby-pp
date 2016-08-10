@@ -5,7 +5,6 @@
 #include <iostream>
 #include <iomanip>
 #include <chrono>
-#include <thread>
 
 #include "NearbyServer.h"
 #include "NearbySession.h"
@@ -49,6 +48,13 @@ void CNearby::stopAdvertising() {
     discover.stop_advertising();
 }
 
+
+std::thread CNearby::startServerAsync() {
+    return std::thread([&]() {
+        startServer();
+    });
+}
+
 bool CNearby::startServer() {
 
 
@@ -89,11 +95,12 @@ bool CNearby::startServer() {
         std::cout << "CNearby::startup - udp sessionfinished!" << std::endl;
     });
 
+    std::cout << "CNearby::startup - start accepting..." << std::endl;
+
     serverLoop = true;
     while(serverLoop) {
 
-        std::cout << "CNearby::startup - start accepting..." << std::endl;
-
+        std::cout << "CNearby::startup - in accepting loop..." << std::endl;
 
         fd_set readFds;
 

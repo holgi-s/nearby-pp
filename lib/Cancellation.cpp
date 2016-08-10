@@ -15,20 +15,14 @@ SOCKET Cancellation::Create()
         loop_addr.sin_family = AF_INET;
         loop_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
         loop_addr.sin_port = htons(0);
-int err =0;
 
-       if(err = bind(loopSocket , (struct sockaddr*)&loop_addr, sizeof(loop_addr) ) >= 0) {
+       if(bind(loopSocket , (struct sockaddr*)&loop_addr, sizeof(loop_addr) ) >= 0) {
 
-            int len = sizeof(local_addr);
-            if(err = getsockname(loopSocket, (struct sockaddr*) &local_addr, &len) >= 0) {
+            socklen_t len = sizeof(local_addr);
+            if(getsockname(loopSocket, (struct sockaddr*) &local_addr, &len) >= 0) {
 
-                if(err= connect(loopSocket, (struct sockaddr*) &local_addr, sizeof(local_addr)) >= 0) {
+                if(connect(loopSocket, (struct sockaddr*) &local_addr, sizeof(local_addr)) >= 0) {
                     return loopSocket;
-                }
-                else{
-
-                    err = WSAGetLastError();
-                    err = err;
                 }
             }
         }

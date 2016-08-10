@@ -1,5 +1,5 @@
 #include <iostream>
-#include <c++/thread>
+#include <thread>
 #include "../lib/NearbyServer.h"
 #include "../lib/NearbyMessage.h"
 
@@ -101,18 +101,16 @@ int main() {
     CColorServer server("HolgisPi", "com.holgis.color_service", "com.holgis.colorconnection", 37484);
 #endif
 
-    std::thread t1([&]() {
-
-        server.startAdvertising();
-        server.startServer();
-
-    });
+    server.startAdvertising();
+    std::thread t1 = server.startServerAsync();
 
     //wait till finish
 
     std::thread t2([&]() {
 
-        std::this_thread::sleep_for(std::chrono::seconds(12));
+        std::cout << "CNearby::startup - starting timout thread!" << std::endl;
+
+        std::this_thread::sleep_for(std::chrono::seconds(500));
         server.stopAdvertising();
         server.stopServer();
 

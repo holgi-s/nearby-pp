@@ -20,6 +20,7 @@
 # ifndef SOCKET
 #  define SOCKET int
 #  define SOCKET_ERROR -1
+#  define INVALID_SOCKET -1
 # endif
 #  define closesocket close
 #endif
