@@ -51,6 +51,9 @@ public:
     std::vector<uint8_t> buildAck();
     std::vector<uint8_t> buildAccept(uint32_t sequenceNumber, const std::vector<uint8_t>& payload);
     std::vector<uint8_t> buildPing(uint32_t sequenceNumber);
+    std::vector<uint8_t> buildMessage(uint32_t sequenceNumber, const std::vector<uint8_t>& payload);
+
+
 
     bool getRequestPayload(std::string &remoteDID, std::string &remoteEP,
                            std::string &localEP,

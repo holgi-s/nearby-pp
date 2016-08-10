@@ -190,3 +190,21 @@ std::vector<uint8_t> CNearbyMessage::buildPing(uint32_t sequenceNumber)
 
     return std::move(msg);
 }
+
+std::vector<uint8_t> CNearbyMessage::buildMessage(uint32_t sequenceNumber, const std::vector<uint8_t>& payload)
+{
+    std::vector<uint8_t> msg_header;
+    std::vector<uint8_t> msg;
+
+    msg_header.reserve(10);
+    msg.reserve(12 + payload.size());
+
+    CProtoBuf::writeVarInt(msg_header, 1, Message);
+    CProtoBuf::writeVarInt(msg_header, 2, Command);
+    CProtoBuf::writeVarInt(msg_header, 3, sequenceNumber);
+
+    CProtoBuf::writeMessage(msg, 1, msg_header);
+    CProtoBuf::writeMessage(msg, 2, payload);
+
+    return std::move(msg);
+}

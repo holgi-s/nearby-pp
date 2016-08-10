@@ -131,17 +131,32 @@ bool CNearby::startServer() {
                 socketLookup[cliAddr.sin_addr.s_addr] = sessionSocket;
 
                 CNearbySession *nearbySession = new CNearbySession(this);
+                {
+                    std::lock_guard<std::mutex> lock(sessionLookupMutex);
+                    sessionLookup.insert(std::make_pair(sessionSocket, nearbySession));
+                }
 
                 std::cout << "CNearby::startup - trying to start session..." << std::endl;
 
+                //starting new thread for session
                 sessions.emplace_back([=]() {
                     nearbySession->doSession(sessionSocket, cancelSocket);
+
+                    {
+                        std::lock_guard<std::mutex> lock(sessionLookupMutex);
+                        auto it = sessionLookup.find(sessionSocket);
+                        if(it != sessionLookup.end()) {
+                            sessionLookup.erase(it);
+                        }
+                    }
+
                     delete nearbySession;
                     std::cout << "CNearby::startup - session finished!" << std::endl;
+
                 });
+
             } else {
                 std::cout << "CNearby::startup - shutdown, cancelSocket was called!" << std::endl;
-
             }
         }
 
@@ -177,6 +192,20 @@ void CNearby::onDisconnect(const std::string& remoteEndpoint)
 {
 
 }
+
+void CNearby::sendReliableMessage(const std::string& remoteEndpoint, std::vector<uint8_t>&& payload)
+{
+    for(auto& sc: sessionContext) {
+        if(sc.second.remoteEndpoint == remoteEndpoint){
+            std::lock_guard<std::mutex> lock(sessionLookupMutex);
+            auto it = sessionLookup.find(sc.first);
+            if(it != sessionLookup.end()){
+                it->second->sendMessageReliable(std::move(payload));
+            }
+        }
+    }
+}
+
 
 bool CNearby::sessionRequest(SOCKET sessionSocket, const std::string& remoteDevice, const std::string& remoteEndpoint,
                                    const std::vector<uint8_t>& requestPayload, std::vector<uint8_t>& acceptPayload){

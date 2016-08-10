@@ -32,8 +32,12 @@ SOCKET Cancellation::Create()
     return INVALID_SOCKET;
 }
 
-void Cancellation::Cancel(SOCKET cancel)
-{
+void Cancellation::Cancel(SOCKET cancel) {
     char buf = 0;
     send(cancel, &buf, sizeof(buf), 0);
+}
+
+void Cancellation::Clear(SOCKET cancel) {
+    char buf = 0;
+    recv(cancel, (char *) &buf, sizeof(buf), 0);
 }

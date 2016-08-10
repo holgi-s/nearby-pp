@@ -12,6 +12,7 @@ class Cancellation {
 public:
     static SOCKET Create();
     static void Cancel(SOCKET cancel);
+    static void Clear(SOCKET cancel);
 };
 
 

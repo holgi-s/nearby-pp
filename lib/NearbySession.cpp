@@ -12,18 +12,20 @@
 #include "NearbyServer.h"
 #include "NearbySession.h"
 #include "NearbyMessage.h"
+#include "Cancellation.h"
 
 
-CNearbySession::CNearbySession(CNearby* nearbyServer) {
+CNearbySession::CNearbySession(CNearby* server) {
 
-    this->nearbyServer = nearbyServer;
-
+    nearbyServer = server;
+    queueReadySocket = Cancellation::Create();
 }
 
 CNearbySession::~CNearbySession() {
     if (nearbyServer && sessionSocket != SOCKET_ERROR ) {
         nearbyServer->sessionDisconnect(sessionSocket);
     }
+    closesocket(queueReadySocket);
 }
 
 
@@ -43,7 +45,7 @@ void CNearbySession::doSession(SOCKET sessionSocket, SOCKET cancelSocket) {
 
     std::string remoteDevice, remoteEndpoint;
 
-    SOCKET selectSocket = std::max<SOCKET>(sessionSocket, cancelSocket) + 1;
+    SOCKET selectSocket = std::max<SOCKET>(sessionSocket, std::max<SOCKET>(queueReadySocket, cancelSocket)) + 1;
 
     std::vector<uint8_t> buffer;
     buffer.reserve(chunkSize*2);
@@ -55,6 +57,7 @@ void CNearbySession::doSession(SOCKET sessionSocket, SOCKET cancelSocket) {
         FD_ZERO(&readFds);
 
         FD_SET(sessionSocket, &readFds);
+        FD_SET(queueReadySocket, &readFds);
         if (cancelSocket != SOCKET_ERROR) {
             FD_SET(cancelSocket, &readFds);
         }
@@ -69,6 +72,13 @@ void CNearbySession::doSession(SOCKET sessionSocket, SOCKET cancelSocket) {
                 //data on cancelSocket means we should quit
                 std::cerr << "CNearby::doSession - sessionSocket error set!" << std::endl;
                 break;
+            }
+
+            if (FD_ISSET(queueReadySocket, &readFds)) {
+                //data on messageQueue means we should send it
+                std::cerr << "CNearby::doSession - messageQueue notification set!" << std::endl;
+                Cancellation::Clear(sessionSocket);
+                doWriteQueue(sessionSocket, sequence);
             }
 
             if (FD_ISSET(sessionSocket, &readFds)) {
@@ -154,4 +164,31 @@ bool CNearbySession::sendAnswer(SOCKET sessionSocket, const std::vector<uint8_t>
     wrote += send(sessionSocket, (char *) &message[0], message.size(), 0);
 
     return wrote == message.size() + size.size();
+}
+
+bool CNearbySession::doWriteQueue(SOCKET sessionSocket, uint32_t& sequence) {
+
+    CNearbyMessage message;
+
+    std::vector<uint8_t> payload;
+    {
+        std::lock_guard<std::mutex> lock(messageMutex);
+        if(!messageQueue.empty()){
+            payload = std::move(messageQueue.front());
+            messageQueue.erase(messageQueue.begin());
+        }
+    }
+
+    if(!payload.empty()) {
+        sendAnswer(sessionSocket, message.buildMessage(sequence++, payload));
+    }
+
+}
+
+void CNearbySession::sendMessageReliable(std::vector<uint8_t>&& message) {
+    {
+        std::lock_guard<std::mutex> lock(messageMutex);
+        messageQueue.emplace_back(std::move(message));
+    }
+    Cancellation::Cancel(queueReadySocket);
 }

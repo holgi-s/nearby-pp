@@ -9,10 +9,13 @@
 #include <vector>
 #include <map>
 #include <thread>
+#include <mutex>
 
 #include "Discover.h"
 #include "socket_platform.h"
+#include "NearbySession.h"
 
+class CNearbySession;
 
 class CNearby {
 
@@ -33,7 +36,8 @@ public:
     virtual void onMessage(const std::string& remoteEndpoint, const std::vector<uint8_t>& payload, bool reliable);
     virtual void onDisconnect(const std::string& remoteEndpoint);
 
-    //void sendReliableMessage(const std::string& remoteEndpoint, const std::vector<uint8_t>& payload);
+    void sendReliableMessage(const std::string& remoteEndpoint, std::vector<uint8_t>&& payload);
+
     //void sendReliableMessage(const std::vector<std::string>& remoteEndpoints, const std::vector<uint8_t>& payload);
     //void sendUnreliableMessage(const std::string& remoteEndpoint, const std::vector<uint8_t>& payload);
     //void sendUnreliableMessage(const std::vector<std::string>& remoteEndpoints, const std::vector<uint8_t>& payload);
@@ -67,8 +71,13 @@ private:
     std::map<SOCKET, struct sSessionContext> sessionContext;
     std::map<u_long, SOCKET> socketLookup;
 
+    std::mutex sessionLookupMutex;
+    std::map<SOCKET, CNearbySession*> sessionLookup;
+
+
     SOCKET serverSocket;
     SOCKET cancelSocket;
+
     static bool serverLoop;
 
     const size_t chunkSize = 2048;
