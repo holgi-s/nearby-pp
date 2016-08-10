@@ -23,6 +23,9 @@ public:
 
     virtual void onMessage(const std::string& remoteEndpoint, const std::vector<uint8_t>& payload, bool reliable) override {
         printMessage(payload, reliable);
+
+        std::vector<uint8_t> test { 0,1,2,3 };
+        sendReliableMessage(remoteEndpoint, std::move(test));
     }
 
     virtual void onDisconnect(const std::string& remoteEndpoint) override {
