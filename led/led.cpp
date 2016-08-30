@@ -104,24 +104,27 @@ int main() {
     server.startAdvertising();
     std::thread t1 = server.startServerAsync();
 
-    //wait till finish
+    std::cout << "Type x [Enter] to exit" << std::endl;
 
-    std::thread t2([&]() {
+    while(true) {
+        auto ch = getchar();
+        if (ch == 'x') {
+            break;
+        }
+    }
 
-        std::cout << "CNearby::startup - starting timout thread!" << std::endl;
+    std::cout << "Exit in 2 seconds..." << std::endl;
 
-        std::this_thread::sleep_for(std::chrono::seconds(500));
-        server.stopAdvertising();
-        server.stopServer();
+    std::this_thread::sleep_for(std::chrono::seconds(2));
 
-       std::cout << "CNearby::startup - session finished!" << std::endl;
-    });
+    server.stopAdvertising();
+    server.stopServer();
+
+    std::cout << "Waiting for shutdown..." << std::endl;
 
     t1.join();
-    t2.join();
 
-//    server.stopAdvertising();
- //   server.stopServer();
+    std::cout << "Bye." << std::endl;
 
     return 0;
 }

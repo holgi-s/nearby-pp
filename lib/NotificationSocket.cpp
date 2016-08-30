@@ -2,12 +2,10 @@
 // Created by Holger on 08.08.2016.
 //
 
-#include "Cancellation.h"
+#include "NotificationSocket.h"
 
 
-
-SOCKET Cancellation::Create()
-{
+SOCKET NotificationSocket::Create() {
 
     if(SOCKET loopSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) {
         struct sockaddr_in loop_addr, local_addr;
@@ -32,12 +30,18 @@ SOCKET Cancellation::Create()
     return INVALID_SOCKET;
 }
 
-void Cancellation::Cancel(SOCKET cancel) {
-    char buf = 0;
+void NotificationSocket::Notify(SOCKET cancel) {
+    char buf = 'x';
     send(cancel, &buf, sizeof(buf), 0);
 }
 
-void Cancellation::Clear(SOCKET cancel) {
+void NotificationSocket::Clear(SOCKET cancel) {
     char buf = 0;
-    recv(cancel, (char *) &buf, sizeof(buf), 0);
+
+    struct sockaddr_in adr;
+    socklen_t len = sizeof(adr);
+
+
+    int read = recvfrom(cancel, (char *) &buf, sizeof(buf), 0, (struct sockaddr *) &adr, &len);
+
 }

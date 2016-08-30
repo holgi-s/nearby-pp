@@ -9,7 +9,7 @@
 #include "NearbyServer.h"
 #include "NearbySession.h"
 #include "NearbyMessage.h"
-#include "Cancellation.h"
+#include "NotificationSocket.h"
 
 
 CNearby::CNearby(const std::string& name, const std::string& service, const std::string& package, unsigned short port) {
@@ -24,7 +24,7 @@ CNearby::CNearby(const std::string& name, const std::string& service, const std:
     int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
 #endif
 
-    cancelSocket = Cancellation::Create();
+    cancelSocket = NotificationSocket::Create();
 
 }
 
@@ -175,7 +175,7 @@ bool CNearby::startServer() {
 void CNearby::stopServer() {
 
     serverLoop = false;
-    Cancellation::Cancel(cancelSocket);
+    NotificationSocket::Notify(cancelSocket);
 }
 
 bool CNearby::onConnectionRequest(const std::string& remoteDevice, const std::string& remoteEndpoint,
@@ -188,13 +188,12 @@ void CNearby::onMessage(const std::string& remoteEndpoint, const std::vector<uin
 
 }
 
-void CNearby::onDisconnect(const std::string& remoteEndpoint)
-{
+void CNearby::onDisconnect(const std::string& remoteEndpoint) {
 
 }
 
-void CNearby::sendReliableMessage(const std::string& remoteEndpoint, std::vector<uint8_t>&& payload)
-{
+void CNearby::sendReliableMessage(const std::string& remoteEndpoint, std::vector<uint8_t>&& payload) {
+
     for(auto& sc: sessionContext) {
         if(sc.second.remoteEndpoint == remoteEndpoint){
             std::lock_guard<std::mutex> lock(sessionLookupMutex);
@@ -208,7 +207,7 @@ void CNearby::sendReliableMessage(const std::string& remoteEndpoint, std::vector
 
 
 bool CNearby::sessionRequest(SOCKET sessionSocket, const std::string& remoteDevice, const std::string& remoteEndpoint,
-                                   const std::vector<uint8_t>& requestPayload, std::vector<uint8_t>& acceptPayload){
+                                   const std::vector<uint8_t>& requestPayload, std::vector<uint8_t>& acceptPayload) {
 
     if(onConnectionRequest(remoteDevice, remoteEndpoint, requestPayload, acceptPayload)) {
 
@@ -223,7 +222,7 @@ bool CNearby::sessionRequest(SOCKET sessionSocket, const std::string& remoteDevi
     return false;
 }
 
-void CNearby::sessionMessage(SOCKET sessionSocket, const std::vector<uint8_t>& payload, bool reliable){
+void CNearby::sessionMessage(SOCKET sessionSocket, const std::vector<uint8_t>& payload, bool reliable) {
 
     auto it = sessionContext.find(sessionSocket);
 
@@ -232,7 +231,7 @@ void CNearby::sessionMessage(SOCKET sessionSocket, const std::vector<uint8_t>& p
     }
 }
 
-void CNearby::sessionDisconnect(SOCKET sessionSocket){
+void CNearby::sessionDisconnect(SOCKET sessionSocket) {
 
     for(auto i1 = socketLookup.begin(); i1 != socketLookup.end(); ++i1) {
         if(i1->second == sessionSocket) {
@@ -322,7 +321,7 @@ void CNearby::doUDPSession(SOCKET udpSocket, SOCKET cancelSocket) {
     std::cout << "CNearby::doSession - complete!" << std::endl;
 }
 
-void CNearby::readUDPSocket(SOCKET readSocket, std::vector<uint8_t>& buffer, uint32_t& sequence, std::string& remoteDevice, std::string& remoteEndpoint){
+void CNearby::readUDPSocket(SOCKET readSocket, std::vector<uint8_t>& buffer, uint32_t& sequence, std::string& remoteDevice, std::string& remoteEndpoint) {
 
     struct sockaddr_in cliAddr;
     socklen_t cliLen = sizeof(cliAddr);

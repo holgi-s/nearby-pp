@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.0)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-set(LIB_SOURCE NearbyServer.cpp NearbySession.cpp NearbyMessage.cpp ProtoBuf.cpp Discover.cpp Cancellation.cpp Cancellation.h)
+set(LIB_SOURCE NearbyServer.cpp NearbySession.cpp NearbyMessage.cpp ProtoBuf.cpp Discover.cpp NotificationSocket.cpp NotificationSocket.h)
 
 if(WIN32)
     set(LIB_SOURCE ${LIB_SOURCE} win32/Bonjour.cpp)

@@ -1,9 +1,9 @@
 #include <iostream>
 #include "../lib/NearbyServer.h"
 
-class CColorServer : public CNearby {
+class CHelloServer : public CNearby {
 public:
-    CColorServer(std::string localName, std::string serviceName, std::string packageName, unsigned short servicePort)
+    CHelloServer(std::string localName, std::string serviceName, std::string packageName, unsigned short servicePort)
             : CNearby (localName, serviceName, packageName, servicePort) {
     };
 
@@ -24,15 +24,23 @@ public:
     virtual void onMessage(const std::string& remoteEndpoint, const std::vector<uint8_t>& payload, bool reliable) override {
         printMessage(payload, reliable);
 
-        std::vector<uint8_t> test { 0,1,2,3 };
-        sendReliableMessage(remoteEndpoint, std::move(test));
+        if(!payload.empty()) {
+            std::string msg(payload.begin(), payload.end());
+
+            std::string msg2 = "You send: " + msg;
+            std::vector<uint8_t> out;
+
+            std::copy(begin(msg2), end(msg2), std::inserter(out, begin(out)));
+            sendReliableMessage(remoteEndpoint, std::move(out));
+        }
     }
 
     virtual void onDisconnect(const std::string& remoteEndpoint) override {
         std::cout << "-> Disconnected: " << remoteEndpoint << std::endl;
     }
 
-private :
+
+private:
 
     void printMessage(const std::vector<uint8_t>& payload, bool reliable) {
 
@@ -40,7 +48,6 @@ private :
             std::string msg( payload.begin(), payload.end() );
             std::cout << "-> Message: " << msg << (reliable ? "" : "*") << std::endl;
         }
-
     }
 };
 
@@ -48,19 +55,35 @@ private :
 int main() {
 
 #ifdef __WIN32__
-    CColorServer server("HolgisPC", "com.holgis.hello_service", "com.holgis.helloconnection", 37484);
+    CHelloServer  server("HolgisPC", "com.holgis.hello_service", "com.holgis.helloconnection", 37484);
 #else
     CColorServer server("HolgisPi", "com.holgis.hello_service", "com.holgis.helloconnection", 37484);
 #endif
 
-
     server.startAdvertising();
-    server.startServer();
+    std::thread t1 = server.startServerAsync();
 
-    //wait till finish
+    std::cout << "Type x [Enter] to exit" << std::endl;
+
+    while(true) {
+        auto ch = getchar();
+        if (ch == 'x') {
+            break;
+        }
+    }
+
+    std::cout << "Exit in 2 seconds..." << std::endl;
+
+    std::this_thread::sleep_for(std::chrono::seconds(2));
 
     server.stopAdvertising();
     server.stopServer();
+
+    std::cout << "Waiting for shutdown..." << std::endl;
+
+    t1.join();
+
+    std::cout << "Bye." << std::endl;
 
     return 0;
 }

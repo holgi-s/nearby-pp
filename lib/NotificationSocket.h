@@ -7,11 +7,11 @@
 
 #include "socket_platform.h"
 
-class Cancellation {
+class NotificationSocket {
 
 public:
     static SOCKET Create();
-    static void Cancel(SOCKET cancel);
+    static void Notify(SOCKET cancel);
     static void Clear(SOCKET cancel);
 };
 

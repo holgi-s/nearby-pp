@@ -12,13 +12,13 @@
 #include "NearbyServer.h"
 #include "NearbySession.h"
 #include "NearbyMessage.h"
-#include "Cancellation.h"
+#include "NotificationSocket.h"
 
 
 CNearbySession::CNearbySession(CNearby* server) {
 
     nearbyServer = server;
-    queueReadySocket = Cancellation::Create();
+    queueReadySocket = NotificationSocket::Create();
 }
 
 CNearbySession::~CNearbySession() {
@@ -77,7 +77,7 @@ void CNearbySession::doSession(SOCKET sessionSocket, SOCKET cancelSocket) {
             if (FD_ISSET(queueReadySocket, &readFds)) {
                 //data on messageQueue means we should send it
                 std::cerr << "CNearby::doSession - messageQueue notification set!" << std::endl;
-                Cancellation::Clear(sessionSocket);
+                NotificationSocket::Clear(queueReadySocket);
                 doWriteQueue(sessionSocket, sequence);
             }
 
@@ -190,5 +190,5 @@ void CNearbySession::sendMessageReliable(std::vector<uint8_t>&& message) {
         std::lock_guard<std::mutex> lock(messageMutex);
         messageQueue.emplace_back(std::move(message));
     }
-    Cancellation::Cancel(queueReadySocket);
+    NotificationSocket::Notify(queueReadySocket);
 }
