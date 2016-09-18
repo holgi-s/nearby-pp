@@ -9,7 +9,7 @@ It is targeting RaspberryPi3 and Windows.
 For device discovery I use the Avahi C++ library.
 On Windows I use the external Bonjour service.
 
-Currently only the server side of the protocol is implemented
+Currently only the server side of the protocol is implemented.
 
 
 PI Dependencies:
@@ -27,4 +27,6 @@ Install Avahi cient header and libraries:
 Optional (for the led example):
 Install pigpiod
   http://abyz.co.uk/rpi/pigpio/download.html
+  
+[RaspberryPi LED Setup](/led/README.md)
 
