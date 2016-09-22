@@ -57,7 +57,6 @@ std::thread CNearby::startServerAsync() {
 
 bool CNearby::startServer() {
 
-
     std::cout << "CNearby::startup - creating server socket" << std::endl;
 
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
@@ -130,7 +129,7 @@ bool CNearby::startServer() {
 
                 socketLookup[cliAddr.sin_addr.s_addr] = sessionSocket;
 
-                CNearbySession *nearbySession = new CNearbySession(this);
+                CNearbySession *nearbySession = new CNearbySession(this, (const struct sockaddr*)&cliAddr);
                 {
                     std::lock_guard<std::mutex> lock(sessionLookupMutex);
                     sessionLookup.insert(std::make_pair(sessionSocket, nearbySession));
@@ -199,12 +198,24 @@ void CNearby::sendReliableMessage(const std::string& remoteEndpoint, std::vector
             std::lock_guard<std::mutex> lock(sessionLookupMutex);
             auto it = sessionLookup.find(sc.first);
             if(it != sessionLookup.end()){
-                it->second->sendMessageReliable(std::move(payload));
+                it->second->sendMessage(std::move(payload), true);
             }
         }
     }
 }
 
+void CNearby::sendUnreliableMessage(const std::string& remoteEndpoint, std::vector<uint8_t>&& payload) {
+
+    for(auto& sc: sessionContext) {
+        if(sc.second.remoteEndpoint == remoteEndpoint){
+            std::lock_guard<std::mutex> lock(sessionLookupMutex);
+            auto it = sessionLookup.find(sc.first);
+            if(it != sessionLookup.end()){
+                it->second->sendMessage(std::move(payload), false);
+            }
+        }
+    }
+}
 
 bool CNearby::sessionRequest(SOCKET sessionSocket, const std::string& remoteDevice, const std::string& remoteEndpoint,
                                    const std::vector<uint8_t>& requestPayload, std::vector<uint8_t>& acceptPayload) {

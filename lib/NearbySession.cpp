@@ -15,15 +15,19 @@
 #include "NotificationSocket.h"
 
 
-CNearbySession::CNearbySession(CNearby* server) {
+CNearbySession::CNearbySession(CNearby* server, const struct sockaddr* remoteAddress) {
 
     nearbyServer = server;
+    memcpy(&remoteAddr, remoteAddress, sizeof(struct sockaddr) );
     queueReadySocket = NotificationSocket::Create();
 }
 
 CNearbySession::~CNearbySession() {
     if (nearbyServer && sessionSocket != SOCKET_ERROR ) {
         nearbyServer->sessionDisconnect(sessionSocket);
+    }
+    if( udpSocket != SOCKET_ERROR) {
+        closesocket(udpSocket);
     }
     closesocket(queueReadySocket);
 }
@@ -166,6 +170,25 @@ bool CNearbySession::sendAnswer(SOCKET sessionSocket, const std::vector<uint8_t>
     return wrote == message.size() + size.size();
 }
 
+SOCKET CNearbySession::createLocalUDP() {
+
+    if(udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) {
+
+        struct sockaddr_in local_addr;
+
+        local_addr.sin_family = AF_INET;
+        local_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+        local_addr.sin_port = htons(0);
+
+        if(bind(udpSocket , (struct sockaddr*)&local_addr, sizeof(local_addr) ) < 0) {
+            closesocket(udpSocket);
+            udpSocket = SOCKET_ERROR;
+        }
+    }
+
+    return udpSocket;
+}
+
 bool CNearbySession::doWriteQueue(SOCKET sessionSocket, uint32_t& sequence) {
 
     CNearbyMessage message;
@@ -182,13 +205,17 @@ bool CNearbySession::doWriteQueue(SOCKET sessionSocket, uint32_t& sequence) {
     if(!payload.empty()) {
         sendAnswer(sessionSocket, message.buildMessage(sequence++, payload));
     }
-
 }
 
-void CNearbySession::sendMessageReliable(std::vector<uint8_t>&& message) {
-    {
-        std::lock_guard<std::mutex> lock(messageMutex);
-        messageQueue.emplace_back(std::move(message));
+void CNearbySession::sendMessage(std::vector<uint8_t>&& message, bool reliable) {
+    if(reliable) {
+        {
+            std::lock_guard<std::mutex> lock(messageMutex);
+            messageQueue.emplace_back(std::move(message));
+        }
+        NotificationSocket::Notify(queueReadySocket);
+    } else {
+        sendto(udpSocket,(const char*)&message[0], message.size(), 0, &remoteAddr, sizeof(remoteAddr));
     }
-    NotificationSocket::Notify(queueReadySocket);
 }
+

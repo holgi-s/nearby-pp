@@ -17,12 +17,12 @@ class CNearby;
 
 class CNearbySession {
 public:
-    CNearbySession(CNearby* nearbyServer);
+    CNearbySession(CNearby* nearbyServer, const struct sockaddr* remoteAddress);
     virtual ~CNearbySession();
 
     void doSession(SOCKET sessionSocket, SOCKET cancelSocket = SOCKET_ERROR);
 
-    void sendMessageReliable(std::vector<uint8_t>&& message);
+    void sendMessage(std::vector<uint8_t>&& message, bool reliable = true);
 
 private:
     bool readRequest(SOCKET sessionSocket, std::vector<uint8_t>& buffer, uint32_t& sequence,
@@ -34,6 +34,10 @@ private:
 
     SOCKET sessionSocket = SOCKET_ERROR;
     SOCKET queueReadySocket = SOCKET_ERROR;
+
+    SOCKET createLocalUDP();
+    struct sockaddr remoteAddr;
+    SOCKET udpSocket = SOCKET_ERROR;
 
     const size_t chunkSize = 2048;
 

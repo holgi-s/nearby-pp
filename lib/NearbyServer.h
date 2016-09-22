@@ -37,6 +37,7 @@ public:
     virtual void onDisconnect(const std::string& remoteEndpoint);
 
     void sendReliableMessage(const std::string& remoteEndpoint, std::vector<uint8_t>&& payload);
+    void sendUnreliableMessage(const std::string& remoteEndpoint, std::vector<uint8_t>&& payload);
 
     //void sendReliableMessage(const std::vector<std::string>& remoteEndpoints, const std::vector<uint8_t>& payload);
     //void sendUnreliableMessage(const std::string& remoteEndpoint, const std::vector<uint8_t>& payload);
