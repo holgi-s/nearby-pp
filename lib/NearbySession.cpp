@@ -104,7 +104,8 @@ void CNearbySession::doSession(SOCKET sessionSocket, SOCKET cancelSocket) {
     std::cout << "CNearby::doSession - complete!" << std::endl;
 }
 
-bool CNearbySession::readRequest(SOCKET sessionSocket, std::vector<uint8_t>& buffer, uint32_t& sequence, std::string& remoteDevice, std::string& remoteEndpoint){
+bool CNearbySession::readRequest(SOCKET sessionSocket, std::vector<uint8_t>& buffer, uint32_t& sequence,
+                                 std::string& remoteDevice, std::string& remoteEndpoint) {
 
     bool sessionLoop = true;
 
@@ -172,7 +173,9 @@ bool CNearbySession::sendAnswer(SOCKET sessionSocket, const std::vector<uint8_t>
 
 SOCKET CNearbySession::createLocalUDP() {
 
-    if(udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) {
+    udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+    if(SOCKET_ERROR != udpSocket) {
 
         struct sockaddr_in local_addr;
 
